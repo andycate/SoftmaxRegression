@@ -14,7 +14,6 @@ class Data:
 
     """take binary image file, and load the images into an ndarray"""
     def format_images(self, data_file):
-        images = np.array([]) # initialize return variable
         try:
             magic_num = struct.unpack(">L", data_file.read(4))[0] # magic number isn't used, but has some info about the file
             num_images = struct.unpack(">L", data_file.read(4))[0] # number of total images
@@ -26,9 +25,8 @@ class Data:
             img_array = np.frombuffer(img_buffer, dtype=dt, count=-1, offset=0) # make a one dimensional array of all the data
             img_array = np.reshape(img_array, (num_images, rows * cols)).transpose() # reshape array so that each column is an image
             img_array = img_array.astype(dtype=np.float32, casting='safe') # change data type to float32
-            images = img_array
         finally:
-            return images
+            return img_array
 
     """take binary label file, and load the labels into an ndarray"""
     def format_labels(self, data_file):
@@ -55,18 +53,10 @@ class Data:
         shuffled_lbls = np.take(lbls, permutation, axis=-1) # apply the permutation to the labels
         return shuffled_imgs, shuffled_lbls
 
-    """select all the images of ones and zeros, and also handles the intercept term"""
-    def process_data(self, imgs, lbls):
-        index = np.sort(np.append(np.where(lbls==0)[0], np.where(lbls==1)[0])) # sort the indices of the imgs/lbls that are 1 or 0
-        labels = np.take(lbls, index) # take the labels that correspond to 1 or 0
-        images = np.take(imgs, index, axis=-1) # take the images that correspond to 1 or 0
-        images = self.normalize_images(images) # apply zero mean and unit variance normalization to the images
-        return images, labels
-
     """display image for visualization purposes"""
-    def display_image(self, imgs, index):
+    def display_image(self, img):
         disp = ['.', ',', ';', 'x'] # index of symbols
-        image = imgs[:784, index:index+1].reshape(784) # select one image to use
+        image = img.reshape(784) # select one image to use
         for y in range(28):
             for x in range(28):
                 symbol = disp[min(math.floor(image[y*28 + x]*(len(disp))), 3)] # determine the symbol to use for the current pixel
@@ -88,7 +78,8 @@ class Data:
         training_labels_raw.close()
 
         # process the data, and prepare it for training
-        training_images, training_labels = self.process_data(training_images, training_labels)
+        training_images = self.normalize_images(training_images)
+        training_images = np.append(training_images, np.ones((1, training_images.shape[1])), axis=0)
 
         #randomize
         if randomize:
@@ -112,7 +103,8 @@ class Data:
         test_labels_raw.close()
 
         # process the data, and prepare it for training
-        test_images, test_labels = self.process_data(test_images, test_labels)
+        test_images = self.normalize_images(test_images)
+        test_images = np.append(test_images, np.ones((1, test_images.shape[1])), axis=0)
 
         #randomize
         if randomize:
@@ -127,6 +119,6 @@ class Data:
             return self.randomize_data(self.training_images, self.training_labels)
         elif size == -2:
             size = self.default_batch_size
-        shuff_imgs, shuff_lbls = self.randomize_data(self.training_images, self.training_labels) # randomize the images before selecting images
-        perm = np.random.permutation(size) # create a random permutation of the specified size
-        return np.take(shuff_imgs, perm, axis=-1), np.take(shuff_lbls, perm, axis=-1) # use the permutation as indices to select random image-label pairs
+        indices = np.arange(self.training_images.shape[1])
+        np.random.shuffle(indices)
+        return np.take(self.training_images, indices[:size], axis=-1), np.take(self.training_labels, indices[:size], axis=-1) # use the permutation as indices to select random image-label pairs

@@ -44,10 +44,10 @@ class Data:
     def generate_label_logits(self):
         self.training_lbls_logits = np.zeros((10, self.training_lbls.size), dtype=np.float32)
         for i in range(self.training_lbls.size):
-            self.training_lbls_logits[self.training_lbls[i], i] = 1
+            self.training_lbls_logits[int(self.training_lbls[i])][i] = 1
         self.test_lbls_logits = np.zeros((10, self.test_lbls.size))
         for i in range(self.test_lbls.size):
-            self.test_lbls_logits[self.test_lbls[i], i] = 1
+            self.test_lbls_logits[int(self.test_lbls[i])][i] = 1
 
     """perform zero mean, and unit variance normalization on images"""
     def normalize_imgs(self, imgs):
@@ -125,9 +125,9 @@ class Data:
     """create a random batch of images with specified size"""
     def next_batch(self, size=-2):
         if size == -1:
-            return self.randomize_data(self.training_imgs, self.training_lbls)
+            return self.training_imgs, self.training_lbls, self.training_lbls_logits
         elif size == -2:
             size = self.default_batch_size
         indices = np.arange(self.training_imgs.shape[1])
         np.random.shuffle(indices)
-        return np.take(self.training_imgs, indices[:size], axis=-1), np.take(self.training_lbls, indices[:size], axis=-1) # use the permutation as indices to select random image-label pairs
+        return np.take(self.training_imgs, indices[:size], axis=-1), np.take(self.training_lbls, indices[:size], axis=-1), np.take(self.training_lbls_logits, indices[:size], axis=-1) # use the permutation as indices to select random image-label pairs

@@ -11,7 +11,14 @@ class Model:
     def __init__(self, learning_rate, init_type=InitType.RANDOM, epsilon=0.01):
         self.learning_rate = learning_rate
         if init_type == InitType.NORMAL:
+            self.theta = np.random.normal(10, 785) * epsilon
+        elif init_type == InitType.ZERO:
+            self.theta = np.zeros(10, 785)
+        elif init_type == InitType.RANDOM:
             self.theta = np.random.rand(10, 785) * epsilon
+        elif init_type == InitType.EPSILON:
+            self.theta = np.ones(10, 785) * epsilon
+
 
     def __hypothesis(self, imgs): # h_theta of x (softmax)
         raw = np.exp(self.theta.dot(imgs))
@@ -29,3 +36,6 @@ class Model:
 
     def minimize(self, imgs, lbls_logits):
         self.theta -= self.learning_rate * self.__gradient(imgs, lbls_logits)
+
+    def predict(self, imgs):
+        return self.__hypothesis(imgs)
